@@ -1,8 +1,8 @@
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 type AIRequestType = "suggest_issue" | "generate_diagnosis" | "suggest_resolution" | "autocomplete";
@@ -53,9 +53,9 @@ export async function POST(request: NextRequest) {
     const body: AIRequest = await request.json();
     const { type, deviceType, deviceBrand, deviceModel, issueDescription, diagnosis, partialText, fieldContext } = body;
 
-    if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === "your-anthropic-api-key-here") {
+    if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
-        { error: "API key de Anthropic no configurada" },
+        { error: "API key de OpenAI no configurada" },
         { status: 500 }
       );
     }
@@ -95,11 +95,14 @@ Completa este texto de manera natural.`;
         return NextResponse.json({ error: "Tipo de solicitud no válido" }, { status: 400 });
     }
 
-    const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
       max_tokens: 500,
-      system: systemPrompts[type],
       messages: [
+        {
+          role: "system",
+          content: systemPrompts[type],
+        },
         {
           role: "user",
           content: userMessage,
@@ -107,7 +110,7 @@ Completa este texto de manera natural.`;
       ],
     });
 
-    const responseText = message.content[0].type === "text" ? message.content[0].text : "";
+    const responseText = completion.choices[0]?.message?.content || "";
 
     return NextResponse.json({ suggestion: responseText });
   } catch (error) {
