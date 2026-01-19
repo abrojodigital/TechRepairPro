@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { AIAssistant } from "@/components/ui/AIAssistant";
 import type { RepairStatus } from "@/types/database";
 
 interface Props {
@@ -12,6 +13,11 @@ interface Props {
   resolution: string | null;
   finalCost: number | null;
   statusFlow: RepairStatus[];
+  // Device info for AI context
+  deviceType?: string;
+  deviceBrand?: string;
+  deviceModel?: string;
+  issueDescription?: string;
 }
 
 export function RepairStatusUpdate({
@@ -21,6 +27,10 @@ export function RepairStatusUpdate({
   resolution: initialResolution,
   finalCost: initialFinalCost,
   statusFlow,
+  deviceType,
+  deviceBrand,
+  deviceModel,
+  issueDescription,
 }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -71,6 +81,22 @@ export function RepairStatusUpdate({
     await handleStatusUpdate("cancelled");
   };
 
+  const handleDiagnosisSuggestion = (suggestion: string) => {
+    if (diagnosis.trim()) {
+      setDiagnosis(diagnosis + "\n\n" + suggestion);
+    } else {
+      setDiagnosis(suggestion);
+    }
+  };
+
+  const handleResolutionSuggestion = (suggestion: string) => {
+    if (resolution.trim()) {
+      setResolution(resolution + "\n\n" + suggestion);
+    } else {
+      setResolution(suggestion);
+    }
+  };
+
   if (currentStatus === "delivered" || currentStatus === "cancelled") {
     return null;
   }
@@ -86,7 +112,18 @@ export function RepairStatusUpdate({
       <div className="space-y-4">
         {currentStatus === "pending" && (
           <div>
-            <label className="block text-sm font-medium text-gray-700">Diagnosis</label>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700">Diagnosis</label>
+              <AIAssistant
+                type="generate_diagnosis"
+                deviceType={deviceType}
+                deviceBrand={deviceBrand}
+                deviceModel={deviceModel}
+                issueDescription={issueDescription}
+                onSuggestion={handleDiagnosisSuggestion}
+                buttonText="Generar Diagnóstico"
+              />
+            </div>
             <textarea
               value={diagnosis}
               onChange={(e) => setDiagnosis(e.target.value)}
@@ -100,7 +137,19 @@ export function RepairStatusUpdate({
         {(currentStatus === "in_progress" || currentStatus === "waiting_parts") && (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Resolution</label>
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium text-gray-700">Resolution</label>
+                <AIAssistant
+                  type="suggest_resolution"
+                  deviceType={deviceType}
+                  deviceBrand={deviceBrand}
+                  deviceModel={deviceModel}
+                  issueDescription={issueDescription}
+                  diagnosis={diagnosis || initialDiagnosis || undefined}
+                  onSuggestion={handleResolutionSuggestion}
+                  buttonText="Sugerir Resolución"
+                />
+              </div>
               <textarea
                 value={resolution}
                 onChange={(e) => setResolution(e.target.value)}

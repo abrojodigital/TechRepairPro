@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { AITextarea } from "@/components/ui/AIAssistant";
 import type { Database, DeviceType } from "@/types/database";
 
 type Customer = Database["public"]["Tables"]["customers"]["Row"];
@@ -26,6 +27,10 @@ export default function NewRepairPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [issueDescription, setIssueDescription] = useState("");
+
+  // Get selected device info for AI context
+  const selectedDeviceInfo = devices.find((d) => d.id === selectedDevice);
 
   useEffect(() => {
     async function loadCustomers() {
@@ -126,7 +131,7 @@ export default function NewRepairPage() {
     const { error } = await supabase.from("repairs").insert({
       customer_id: selectedCustomer,
       device_id: selectedDevice,
-      issue_description: formData.get("issue_description") as string,
+      issue_description: issueDescription,
       estimated_cost: formData.get("estimated_cost") ? parseFloat(formData.get("estimated_cost") as string) : null,
       estimated_completion: formData.get("estimated_completion") as string || null,
     });
@@ -341,16 +346,21 @@ export default function NewRepairPage() {
         <form onSubmit={handleCreateRepair} className="rounded-lg bg-white p-6 shadow">
           <h2 className="mb-4 text-lg font-medium text-gray-900">Issue Details</h2>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Issue Description *</label>
-              <textarea
-                name="issue_description"
-                required
-                rows={4}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-                placeholder="Describe the problem the customer is experiencing..."
-              />
-            </div>
+            <AITextarea
+              id="issue_description"
+              name="issue_description"
+              value={issueDescription}
+              onChange={setIssueDescription}
+              label="Issue Description"
+              required
+              rows={4}
+              placeholder="Describe the problem the customer is experiencing..."
+              aiType="suggest_issue"
+              aiButtonText="Sugerir con AI"
+              deviceType={selectedDeviceInfo?.type}
+              deviceBrand={selectedDeviceInfo?.brand}
+              deviceModel={selectedDeviceInfo?.model}
+            />
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Estimated Cost ($)</label>

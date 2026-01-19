@@ -103,6 +103,10 @@ export default async function RepairDetailPage({
             resolution={repair.resolution}
             finalCost={repair.final_cost}
             statusFlow={statusFlow}
+            deviceType={device?.type}
+            deviceBrand={device?.brand}
+            deviceModel={device?.model}
+            issueDescription={repair.issue_description}
           />
         </div>
 
